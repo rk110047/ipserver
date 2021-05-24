@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from .models import HdPlusSubscription,HdRegistration
 from .serializers import Hd_Plus_Authentication_serializer,HdPlusSubscriptionSerializer
 from authentication.models import (
-    User, BlackList, UserProfile, UserDevices
+     User , BlackList, UserProfile, UserDevices
 )
+# from django.contrib.auth import get_user_model
 # Create your views here.
 
 #hmac
@@ -13,6 +14,8 @@ import hmac
 import hashlib
 from random import randrange
 
+
+# User  = get_user_model()
 
 
 class Hd_Plus_AuthAPIView(generics.GenericAPIView):
@@ -37,22 +40,28 @@ class Hd_Plus_AuthAPIView(generics.GenericAPIView):
 			key = key.encode('utf-8')
 			dig = hmac.new(key=key, msg=hd_number.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
 			password = str(int(dig , 16) % 10**7)
+
 			if len(password)==7:
 				hd_ott_password = str(key_out_number) + str(password)
 				if ott_password == hd_ott_password:
 					hd_plus 		=	HdRegistration.objects.get_or_create(hd_plus_number=hd_plus_number)
-					User 	=	User.objects.get_or_create(email=hd_plus_number)
-					return Response({"message":"OTT Access granted","status":200})
+					print(hd_plus_number)
+					user 	=	User.objects.get_or_create(username=hd_plus_number)
+					user 	=	User.objects.get(username=hd_plus_number)
+					return Response({"message":"OTT Access granted","status":200,"token":user.token})
 				else:
 					return Response({"message":"OTT Access denied","status":401})
+
 			else:
 				zero = 7 - len(password)
 				hd_ott_password = (zero * "0") + str(password)
 				hd_ott_password = str(key_out_number) + str(hd_ott_password)
 				if ott_password == hd_ott_password:
 					hd_plus 		=	HdRegistration.objects.get_or_create(hd_plus_number=hd_plus_number)
-					User 	=	User.objects.get_or_create(email=hd_plus_number)
-					return Response({"message":"OTT Access granted","status":200})
+					print(hd_plus_number)
+					user 	=	User.objects.get_or_create(username=hd_plus_number)
+					user 	=	User.objects.get(username=hd_plus_number)
+					return Response({"message":"OTT Access granted","status":200,"token":user.token})
 				else:
 					return Response({"message":"OTT Access denied","status":401})
 

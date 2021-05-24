@@ -77,32 +77,32 @@ class UserManager(BaseUserManager):
 class User(AbstractUser, BaseAbstractModel):
     """ Here we will define the user modal """
 
-    USER_ROLES = (
-        ('AD', 'admin'),
-        ('CA', 'client_admin'),
-        ('VI', 'viewer'),
-    )
+    # USER_ROLES = (
+    #     ('AD', 'admin'),
+    #     ('CA', 'client_admin'),
+    #     ('VI', 'viewer'),
+    # )
 
-    # username = models.CharField(
-    #     null=True, blank=True, max_length=100, unique=True)
-    email = EmailField(unique=True)
-    role = models.CharField(
-        verbose_name='user role', max_length=20, choices=USER_ROLES,
-        default='VI'
-    )
-    #acct_expiry_date=models.DateField(blank=True, null=True)
-    is_verified = models.BooleanField(default=False)
-    # USERNAME_FIELD = 'email'
+    # # username = models.CharField(
+    # #     null=True, blank=True, max_length=100, unique=True)
+    # email = EmailField(unique=True)
+    # role = models.CharField(
+    #     verbose_name='user role', max_length=20, choices=USER_ROLES,
+    #     default='VI'
+    # )
+    # #acct_expiry_date=models.DateField(blank=True, null=True)
+    # is_verified = models.BooleanField(default=False)
+    # # USERNAME_FIELD = 'email'
 
-    # REQUIRED_FIELDS = ['first_name', 'last_name']
-    objects = UserManager()
+    # # REQUIRED_FIELDS = ['first_name', 'last_name']
+    # objects = UserManager()
 
-    def __str__(self):
-        return f'{self.email}'
+    # def __str__(self):
+    #     return f'{self.email}'
 
-    @property
-    def get_email(self):
-        return self.email
+    # @property
+    # def get_email(self):
+    #     return self.email
 
     @property
     def token(self):
@@ -114,7 +114,7 @@ class User(AbstractUser, BaseAbstractModel):
 
         token = jwt.encode({
             'id': self.pk,
-            'email': self.get_email,
+            'username': self.username,
             'ts': int(ts.strftime('%s'))
         }, settings.SECRET_KEY, algorithm='HS256')
 
