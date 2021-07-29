@@ -77,19 +77,19 @@ class UserManager(BaseUserManager):
 class User(AbstractUser, BaseAbstractModel):
     """ Here we will define the user modal """
 
-    # USER_ROLES = (
-    #     ('AD', 'admin'),
-    #     ('CA', 'client_admin'),
-    #     ('VI', 'viewer'),
-    # )
+     #USER_ROLES = (
+      #   ('AD', 'admin'),
+       #  ('CA', 'client_admin'),
+        # ('VI', 'viewer'),
+    #)
 
     # # username = models.CharField(
     # #     null=True, blank=True, max_length=100, unique=True)
     # email = EmailField(unique=True)
-    # role = models.CharField(
-    #     verbose_name='user role', max_length=20, choices=USER_ROLES,
-    #     default='VI'
-    # )
+     #role = models.CharField(
+      #   verbose_name='user role', max_length=20, choices=USER_ROLES,
+       #  default='VI'
+     #)
     # #acct_expiry_date=models.DateField(blank=True, null=True)
     # is_verified = models.BooleanField(default=False)
     # # USERNAME_FIELD = 'email'
@@ -103,6 +103,17 @@ class User(AbstractUser, BaseAbstractModel):
     # @property
     # def get_email(self):
     #     return self.email
+
+    USER_ROLES = (
+        ('AD', 'admin'),
+        ('CA', 'client_admin'),
+        ('VI', 'viewer'),
+    )
+
+    role = models.CharField(
+        verbose_name='user role', max_length=20, choices=USER_ROLES,
+        default='VI'
+    )
 
     @property
     def token(self):

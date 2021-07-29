@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import generics,status
 from rest_framework.response import Response
-from .models import HdPlusSubscription,HdRegistration
-from .serializers import Hd_Plus_Authentication_serializer,HdPlusSubscriptionSerializer
+from .models import HdPlusSubscription,HdRegistration,OtpVerification
+from .serializers import Hd_Plus_Authentication_serializer,HdPlusSubscriptionSerializer,OtpVerificationSerializer
 from authentication.models import (
      User , BlackList, UserProfile, UserDevices
 )
@@ -10,9 +10,11 @@ from authentication.models import (
 # Create your views here.
 
 #hmac
+import requests
 import hmac
 import hashlib
 from random import randrange
+from hashlib import blake2b
 
 
 # User  = get_user_model()
@@ -24,8 +26,8 @@ class Hd_Plus_AuthAPIView(generics.GenericAPIView):
 
 	def post(self,request):
 
-		hd_plus_number 	=	request.POST['hd_plus_number']
-		ott_password 	= 	request.POST['ott_password']
+		hd_plus_number 	=	request.data['hd_plus_number']
+		ott_password 	= 	request.data['ott_password']
 
 		if len(hd_plus_number)==12 and len(ott_password)==8:
 
@@ -37,18 +39,24 @@ class Hd_Plus_AuthAPIView(generics.GenericAPIView):
 
 			key_out_number = ott_password[0] 
 			key = keys[int(ott_password[0]) - 1]
-			key = key.encode('utf-8')
-			dig = hmac.new(key=key, msg=hd_number.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
+			key = bytearray.fromhex(key)
+			dig = blake2b(key=key,digest_size=4)
+			dig.update(hd_number.encode('utf-8'))
+			dig = dig.hexdigest()
 			password = str(int(dig , 16) % 10**7)
 
 			if len(password)==7:
 				hd_ott_password = str(key_out_number) + str(password)
 				if ott_password == hd_ott_password:
 					hd_plus 		=	HdRegistration.objects.get_or_create(hd_plus_number=hd_plus_number)
+					hd_plus 		=	HdRegistration.objects.get(hd_plus_number=hd_plus_number)
 					print(hd_plus_number)
 					user 	=	User.objects.get_or_create(username=hd_plus_number)
 					user 	=	User.objects.get(username=hd_plus_number)
-					return Response({"message":"OTT Access granted","status":200,"token":user.token})
+					if hd_plus.mobile_number:
+						mobile_number = True
+					mobile_number = False
+					return Response({"message":"OTT Access granted","status":200,"token":user.token,"mobile_number":hd_plus.mobile_number})
 				else:
 					return Response({"message":"OTT Access denied","status":401})
 
@@ -61,7 +69,10 @@ class Hd_Plus_AuthAPIView(generics.GenericAPIView):
 					print(hd_plus_number)
 					user 	=	User.objects.get_or_create(username=hd_plus_number)
 					user 	=	User.objects.get(username=hd_plus_number)
-					return Response({"message":"OTT Access granted","status":200,"token":user.token})
+					if hd_plus.mobile_number:
+						mobile_number = True
+					mobile_number = False
+					return Response({"message":"OTT Access granted","status":200,"token":user.token,"mobile_number":hd_plus.mobile_number})
 				else:
 					return Response({"message":"OTT Access denied","status":401})
 
@@ -101,14 +112,16 @@ class OTT_password_genAPIView(generics.GenericAPIView):
 			key_number = randrange(3)
 			key_out_number = key_number + 1
 			key = keys[key_number]
-			key = key.encode('utf-8')
-			dig = hmac.new(key=key, msg=hd_number.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
+			key = bytearray.fromhex(key)
+			dig = blake2b(key=key,digest_size=4)
+			dig.update(hd_number.encode('utf-8'))
+			dig = dig.hexdigest()
 			password = str(int(dig , 16) % 10**7)
 			if len(password)==7:
 				ott_password = str(key_out_number) + str(password)
 				return Response({
 							"hd_plus_number":hd_plus_number,
-							"ott_password":ott_password})
+							"ott_password":ott_password,})
 
 			else:
 				zero = 7 - len(password)
@@ -119,3 +132,72 @@ class OTT_password_genAPIView(generics.GenericAPIView):
 							"ott_password":ott_password})
 
 		return Response({"message":"hd+ number invalid"})
+
+
+class OtpGeneratorAPIView(generics.GenericAPIView):
+	serializer_class 	=	OtpVerificationSerializer
+
+	def post(self,request):
+		mobile_number 	=	request.data['mobile_number']
+		otp 			=    randrange(1000,9999)
+		try:
+			OtpVerification.objects.get_or_create(mobile_number=mobile_number,otp=otp)
+			msg = str(otp) + " is your HD Plus OTP."
+			BASE_URL 	= "https://sms.arkesel.com/sms/api?action=send-sms&api_key=Om83TTlZT2FvUUtqV0s4M0Y=&to="+mobile_number+F"&from=HDPlus&sms="+msg
+			print(BASE_URL)
+			res 	=	requests.get(BASE_URL)
+			print(res.json())
+			response 	=	{
+				"mobile_number":mobile_number,
+				"otp":otp
+			}
+			return Response(response)
+		except:
+			data =	OtpVerification.objects.get(mobile_number=mobile_number)
+			data.otp 	=	otp
+			data.save()
+			msg = str(otp) + " is your HD Plus OTP."
+			BASE_URL 	= "https://sms.arkesel.com/sms/api?action=send-sms&api_key=Om83TTlZT2FvUUtqV0s4M0Y=&to="+mobile_number+F"&from=HDPlus&sms="+msg
+			res 	=	requests.get(BASE_URL)
+			print(res.json())
+			response 	=	{
+				"mobile_number":mobile_number,
+				"otp":otp
+			}
+			return Response(response)
+
+
+class OtpValidation(generics.GenericAPIView):
+	serializer_class 	=	OtpVerificationSerializer
+
+	def post(self,request):
+		mobile_number 	=	request.data['mobile_number']
+		otp 			=    request.data['otp']
+		mobile 			=	 OtpVerification.objects.get(mobile_number=mobile_number)
+		print(mobile.otp)
+		print(mobile.otp==otp)
+		if mobile.otp==otp:
+			hd_plus_number 	= 	 request.GET.get('hd_plus_number')
+			hd_number 	=	HdRegistration.objects.get(hd_plus_number=hd_plus_number)
+			hd_number.mobile_number = mobile_number
+			hd_number.save()
+			response 	=	{
+				"status":200,
+				"message":"number verified"
+			}
+			return Response(response)
+
+
+		response 	=	{
+			"status":400,
+			"message":"invalid details"
+		}
+		return Response(response)
+
+
+
+
+
+
+
+

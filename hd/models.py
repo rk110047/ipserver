@@ -12,6 +12,9 @@ class OtpVerification(models.Model):
 	mobile_number 		=		models.CharField(max_length=120,unique=True,blank=True,null=True)
 	otp 				=		models.CharField(max_length=120,blank=True,null=True)
 
+	def __str__(self):
+		return self.mobile_number
+
 class HdPlusSubscription(models.Model):
 	choices 	=	(("YES","yes"),("NO","no"))
 	hd_plus_number 		=		models.CharField(max_length=120,unique=True)

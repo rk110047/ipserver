@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HdPlusSubscription,HdRegistration
+from .models import HdPlusSubscription,HdRegistration,OtpVerification
 
 
 
@@ -13,3 +13,8 @@ class HdPlusSubscriptionSerializer(serializers.ModelSerializer):
 	class Meta:
 		model 	=	HdPlusSubscription
 		fields 	=	"__all__"
+
+class OtpVerificationSerializer(serializers.ModelSerializer):
+	class Meta:
+		model   =   OtpVerification
+		fields	=	"__all__"
